@@ -1,0 +1,425 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>地理编码</title>
+    <link rel="stylesheet" href="css/map.css"/>
+    <!--<script src="http://cache.amap.com/lbs/static/es5.min.js"></script>-->
+    <script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=be6d007a8f085fd320888c6090f56412&plugin=AMap.Geocoder"></script>
+    <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
+    <script type="text/javascript" src="js/jquery-1.12.1.min.js"></script>
+    <script type="text/javascript" src="js/rem.js"></script>
+	<script type="text/javascript" src="js/sercice.js"></script>
+	<!--<script type="text/javascript" src="js/iscroll-probe.js"></script>-->
+	<style type="text/css">
+		*{
+			margin:0;
+			padding: 0;
+		}
+        .info {
+            border: solid 1px silver;
+            width:280px;
+        }
+        div.info-top {
+            position: relative;
+            background: none repeat scroll 0 0 #F9F9F9;
+            border-bottom: 1px solid #CCC;
+            border-radius: 5px 5px 0 0;
+            font-size: 0.24rem;
+        }
+        div.info-top div {
+            display: inline-block;
+            color: #333333;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 31px;
+            padding: 0 10px;
+        }
+        div.info-top img {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            transition-duration: 0.25s;
+        }
+        div.info-top img:hover {
+            box-shadow: 0px 0px 5px #000;
+        }
+        div.info-middle {
+            font-size: 12px;
+            padding: 6px;
+            line-height: 20px;
+        }
+        div.info-bottom {
+            height: 0px;
+            width: 100%;
+            clear: both;
+            text-align: center;
+        }
+        div.info-bottom img {
+            position: relative;
+            z-index: 104;
+        }
+        span {
+            margin-left: 5px;
+            font-size: 11px;
+        }
+        .info-middle img {
+            float: left;
+            margin-right: 6px;
+        }
+        ul,li{
+        	list-style: none;
+        	padding: 10px 0 10px 5px;
+    		border-bottom: 1px dashed #ccc;
+        }
+        a{
+        	text-decoration: none;
+        }
+        .map{
+        	/*width: 100%;*/
+		    font-size: 16px;
+		    padding: 10px 0 10px 0;
+		    box-shadow: 0rem 5px 5px #ddd;
+		    text-align: center;
+		    box-sizing: border-box;
+        }
+        #search{
+        	width: 20px;
+		    float: right;
+		    padding-top: 0.16rem;
+		    margin-right: 0.2rem;
+        }
+        #autotext{
+        	vertical-align: middle;
+		    border: none;
+		    outline: none;
+		    margin-left: 0.15rem;
+		    width: 85%;
+		    -webkit-appearance: none;
+		    padding-top: 0.16rem;
+		    float: left;
+        }
+        .searchBox{
+        	background: #fff;
+		    border-radius: 5px;
+		    border: solid 1px #ccc;
+		    height: 80%;
+		    width: 80%;
+		    vertical-align: middle;
+        }
+        .box{
+        	width: 100%;
+		    height: 0.72rem;
+		    background: #fcf9f2;
+		    padding-top: 4px;
+        }
+        .backTop{
+        	display: none;
+        	position: fixed;
+        	top: 90%;
+        	right: 20px;
+        }
+        .listCon{
+        	position: relative;
+        }
+    </style>
+</head>
+<body >
+	<div class="box" align="center">
+		<div class="searchBox">
+			<img src="img/search.png" id="search">			
+			<input type="text" placeholder="搜索地址" id="autotext" />
+		</div>
+	</div>	
+	<div id="container"></div>
+	<div class="list" style="position:absolute;bottom:8px;left:0;text-align:center;width:100%;font-size:0.25rem;">列表查看</div>
+	<div id="listCon" style="display:none;font-size:14px;">
+		<div class="backTop">
+			<img src="img/top.png" alt="" />
+		</div>
+		<div class="map" >地图查看</div>
+		<ul>
+		</ul>
+	</div>
+</body>
+	<script type="text/javascript">
+		$(function() {
+			$(window).scroll(function () {    
+                if ($(window).scrollTop() > 103) {     
+                    $('.backTop').css('display','block');
+                } else{     
+                	$('.backTop').css('display','none');
+                }
+	        })    
+			$('#search').click(function() {
+				var value = $('input').val();
+				clearMap();
+				$('#listCon ul').empty();
+		       search1(value);
+			})
+			$('.list').click(function() {
+				$('#container').hide();
+				$('.list').hide();
+				$('#listCon').show();
+			})
+			$('.map').click(function() {
+				$('#container').show();
+				$('.list').show();
+				$('#listCon').hide();
+			})
+			$('input').click(function() {
+				$('body').height($(window).height());
+			})
+			$('.backTop img').click(function() {
+				$("html,body").animate({
+					scrollTop:0
+				}, 500);
+			})
+		})
+    var map = new AMap.Map("container", {
+        resizeEnable: true,
+        zoom: 13
+    });
+    //a();
+     function a() {
+	   	map.plugin('AMap.Geolocation', function() {
+	        geolocation = new AMap.Geolocation({
+	            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+	            timeout: 10,          //超过10秒后停止定位，默认：无穷大
+	            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+	            zoomToAccuracy: false,      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+	            buttonPosition:'RB'
+	        });
+	        map.addControl(geolocation);
+	        geolocation.getCurrentPosition();
+	        AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+	        AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+	    });
+    }
+    //解析定位结果
+    function onComplete(data) {
+        var str=['定位成功'];
+        var addressComponent = data.addressComponent;
+        address = addressComponent.province + addressComponent.city;
+    }
+    //解析定位错误信息
+    function onError(data) {
+        var str=['定位失败']; 
+    }
+    var arr = new Array();
+    var arr1 = new Array();
+    var index = 0;
+    var index1 = 0;
+    var geocoder = new AMap.Geocoder();
+    var $ul = $('#listCon ul');
+    var $li = '';
+    address();
+    function address(){
+    	$.ajax({
+        	type:"get",
+        	url:"json/map.json",
+        	async:true,
+        	success: function(data) {
+        		//console.log(data);
+	        	var instAddresses = data.body.instAddresses;
+	        	console.log(instAddresses.length)
+	        	//var $li = '';
+				for (var i = 0; i < instAddresses.length; i++) {
+					var province = instAddresses[i].province;
+					var addressId = instAddresses[i].id;
+					var institutionId = instAddresses[i].userId;
+					var city = instAddresses[i].city;
+					var area = instAddresses[i].area;
+					var address = instAddresses[i].address;
+					var addressDesc = instAddresses[i].addressDesc;	
+					var institutionName = instAddresses[i].institutionName;
+					var majorName = instAddresses[i].majorName;
+					var phone = instAddresses[i].phone;
+					var totalAddress = province + city + area + address;
+					var adds = new Object();
+					adds.totalAddress = totalAddress;
+					adds.addressDesc = addressDesc;
+					adds.majorName = majorName;
+					adds.addressId = addressId;
+					adds.institutionId = institutionId;
+					adds.institutionName = institutionName;
+					adds.phone = phone;
+					arr.push(adds);
+				}
+				gdGEO();
+			}
+        });
+    }
+    function search1(keyWord){
+    	var data = localStorage.getItem('data');
+    	var data1 = JSON.parse(data);
+    	var len = data1.length;
+    	for(var m=0;m<len;m++){
+		    //如果字符串中不包含目标字符会返回-1
+		    if((data1[m].institutionName).indexOf(keyWord)>=0){
+		    	console.log(data1[m]);
+		    	var lng = data1[m].lng;
+		    	var lat = data1[m].lat;
+		    	var add = data1[m];
+		    	addMarker(lng,lat,add);
+		    	showList1(lng,lat,add);
+		    	$('#container').hide();
+				$('.list').hide();
+				$('#listCon').show();
+		    	map.setFitView();
+		    }
+		} 
+    }
+    function gdGEO(){        	
+		if(arr[index]!=undefined){
+			var adds = arr[index];
+			geocodeSearch(adds);
+			index++;
+		}		
+	}
+    var lat1 = new Array();
+    function geocodeSearch(add) {
+		if(index < arr.length){
+			setTimeout(gdGEO,0);
+		}   	
+        //地理编码,返回地理编码结果
+    	geocoder.getLocation(add.totalAddress, function(status, result) {
+            if (status === 'complete' && result.info === 'OK') {
+		        var geocode = result.geocodes;
+		        var lng = geocode[0].location.lng;
+		        var lat = geocode[0].location.lat;
+		        var obj = new Object();
+		        obj.lng = lng; 
+		        obj.lat = lat;
+		        obj.totalAddress = add.totalAddress;
+		        obj.addressDesc = add.addressDesc;	
+				obj.institutionName = add.institutionName;
+				obj.majorName = add.majorName;
+				obj.phone = add.phone;
+		        lat1.push(obj);
+		        //addMarker(geocode[0],add);
+		       // showList(geocode[0],add);
+		       map.setFitView();
+            }
+        });
+    }
+    setTimeout(function() {
+    	//console.log(lat1);
+    	var objStr=JSON.stringify(lat1);
+    	localStorage.clear();
+    	localStorage.setItem('data',objStr) 
+    },8000)
+    var data = localStorage.getItem('data');
+    console.log(typeof data);
+    var data1 = JSON.parse(data);
+    //console.log(data1)
+    for (var i = 0; i < data1.length; i++) {
+    	var lat = data1[i].lat;
+    	var lng = data1[i].lng;
+    	var add = data1[i];
+    	//console.log(lat)
+    	addMarker(lng,lat,add);
+    	showList(lng,lat,add);
+    }
+    
+    function showList(lng,lat,add) {
+    	$li = '<li data-add="'+ add.institutionName+'('+add.addressDesc+')'+'">'+
+			'<p>'+(i+1)+'、'+ add.institutionName+'('+add.addressDesc+')</p>'+
+			'<p>地址：'+ add.totalAddress+'</p>'+
+			'<a href="tel:'+add.phone+'" style="color:'+(!add.phone?"#000":'')+';text-decoration:none;">电话：'+ (add.phone?add.phone:"无" )+'</p>'+
+			'<a href="##" >查看详情</a>'+
+			'<a href="http://mo.amap.com/?q=' + lat + ',' + lng+'" style="float:right;margin-right:20px;">去这里</a>'
+		'</li>'
+		$ul.append($li);
+    }
+    function showList1(lng,lat,add) {
+    	$li = '<li data-add="'+ add.institutionName+'('+add.addressDesc+')'+'">'+
+			'<p>'+ add.institutionName+'('+add.addressDesc+')</p>'+
+			'<p>地址：'+ add.totalAddress+'</p>'+
+			'<a href="tel:'+add.phone+'" style="color:'+(!add.phone?"#000":'')+';text-decoration:none;">电话：'+ (add.phone?add.phone:"无" )+'</p>'+
+			'<a href="##" >查看详情</a>'+
+			'<a href="http://mo.amap.com/?q=' + lat + ',' + lng+'" style="float:right;margin-right:20px;">去这里</a>'
+		'</li>'
+		$ul.append($li);
+    }
+    function addMarker(lng,lat,add) {
+    	var IconOptions = {
+			image : "img/dian.png",
+			size : new AMap.Size(32,32),
+			imageSize : new AMap.Size(24,24),
+			imageOffset : new AMap.Pixel(0,0)
+		};
+		var myIcon = new AMap.Icon(IconOptions);
+        var marker = new AMap.Marker({
+            map: map,
+            position: [lng,lat],
+            icon:myIcon
+        });
+       	//实例化信息窗体
+       	var title = add.institutionName + "("+add.addressDesc+")",
+	    content = [];
+	    content.push('专业：'+add.majorName);
+	    content.push('地址：'+add.totalAddress);
+	    content.push('<a data-addressId="'+ add.addressId +'" data-institutionId="'+ add.institutionId+'" style="font-size:12px;" id="detail" href="'+path+'/inst/mapDetail?addressId='+ 
+						add.addressId+'&institutionId='+ add.institutionId+'&schoolName='+ encodeURI(encodeURI(add.addressDesc)) +'&major='+ encodeURI(encodeURI(add.totalAddress))+'">查看详情</a>');
+        content.push("<a href='http://mo.amap.com/?q=" + lat + "," + lng + "'>到这儿去</a>");
+        var infoWindow = new AMap.InfoWindow({
+            isCustom: true,  //使用自定义窗体
+        	content: createInfoWindow(title, content.join("<br/>")),
+        	offset: new AMap.Pixel(16, -45)
+        });
+        //鼠标点击marker弹出自定义的信息窗体
+        AMap.event.addListener(marker, 'click', function() {
+            infoWindow.open(map, marker.getPosition());
+        });
+    }
+    
+    //构建自定义信息窗体
+    function createInfoWindow(title, content) {
+        var info = document.createElement("div");
+        info.className = "info";
+        //可以通过下面的方式修改自定义窗体的宽高
+        //info.style.width = "400px";
+        // 定义顶部标题
+        var top = document.createElement("div");
+        var titleD = document.createElement("div");
+        var closeX = document.createElement("img");
+        top.className = "info-top";
+        titleD.innerHTML = title;
+        closeX.src = "http://webapi.amap.com/images/close2.gif";
+        closeX.onclick = closeInfoWindow;
+        top.appendChild(titleD);
+        top.appendChild(closeX);
+        info.appendChild(top);
+
+        // 定义中部内容
+        var middle = document.createElement("div");
+        middle.className = "info-middle";
+        middle.style.backgroundColor = 'white';
+        middle.innerHTML = content;
+        info.appendChild(middle);
+
+        // 定义底部内容
+        var bottom = document.createElement("div");
+        bottom.className = "info-bottom";
+        bottom.style.position = 'relative';
+        bottom.style.top = '-0.66rem';
+        bottom.style.margin = '0 auto';
+        var sharp = document.createElement("img");
+        sharp.src = "http://webapi.amap.com/images/sharp.png";
+        bottom.appendChild(sharp);
+        info.appendChild(bottom);
+        return info;
+    }
+
+    //关闭信息窗体
+    function closeInfoWindow() {
+        map.clearInfoWindow();
+    }
+    function clearMap(){
+		map.clearMap();
+	}
+</script>
+</html>

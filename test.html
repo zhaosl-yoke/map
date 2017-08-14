@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<title>批量地址</title>
+	<style type="text/css">
+		body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+		#l-map{height:100%;width:100%;}
+		#r-result{width:100%; font-size:14px;line-height:20px;}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=yAlta2vdvSIP2Kk6q9oOI80BopvxAq2E"></script>
+	<script type="text/javascript" src="js/jquery-1.12.1.min.js"></script>
+	<script type="text/javascript" src="js/sercice.js"></script>	
+</head>
+<body>
+	<div id="l-map"></div>
+</body>
+</html>
+<script type="text/javascript">
+		var api = {
+			"selectAllInstAddress": "json/map.json" 	
+	}
+	// 百度地图API功能
+	var map = new BMap.Map("l-map");
+	map.centerAndZoom(new BMap.Point(116.38298,39.955543), 13);
+	map.enableScrollWheelZoom(true);
+	var geolocation = new BMap.Geolocation();
+	geolocation.getCurrentPosition(function(r){
+		if(this.getStatus() == BMAP_STATUS_SUCCESS){
+			var mk = new BMap.Marker(r.point);
+			map.addOverlay(mk);
+			map.panTo(r.point);
+		}    
+	},{enableHighAccuracy: true})
+	var index = 0;
+	var myGeo = new BMap.Geocoder();
+	var arr = [];
+	var arr1 = [];
+	var arr2 = [];
+	address();
+	function address(){
+		$.ajax({
+        	type:"get",
+        	url:"json/map.json",
+        	async:true,
+        	success: function(data) {
+        		//console.log(data);
+	        	var instAddresses = data.body.instAddresses;
+	        	console.log(instAddresses.length);
+	        	var j = 0;
+				for (var i = 0; i < instAddresses.length; i++) {
+					var province = instAddresses[i].province;
+					var addressId = instAddresses[i].id;
+					var institutionId = instAddresses[i].userId;
+					var city = instAddresses[i].city;
+					var area = instAddresses[i].area;
+					var address = instAddresses[i].address;
+					var totalAddress = province + city + area + address;
+					var addressDesc = instAddresses[i].addressDesc;			
+					var majorName = instAddresses[i].majorName;
+					var adds = new Object();
+					adds.totalAddress = totalAddress;
+					adds.addressDesc = addressDesc;
+					adds.majorName = majorName;
+					adds.addressId = addressId;
+					adds.institutionId = institutionId;
+					arr.push(adds);	
+					arr2.push(majorName);
+				}
+				bdGEO();
+				//console.log(arr2)
+			}
+        });
+	}
+		function bdGEO(){
+			if (index < arr.length) {
+				var add = arr[index].totalAddress;
+				console.log(add)
+				geocodeSearch(add);
+					index++;	
+			}
+		}
+		function geocodeSearch(add){
+			if(index < arr.length){
+				setTimeout(window.bdGEO,0);
+			} 
+			var j = 0;
+			myGeo.getPoint(add, function(point){
+				if (point) {
+					var address = new BMap.Point(point.lng, point.lat);
+					/*addMarker(address,new BMap.InfoWindow("<h4 style='margin:0 0 5px 0;padding:0.2em 0;font-size: 14px;'>"+ arr[index].addressDesc +"</h4>" + 
+							"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ arr[index].majorName+"</p>" + 
+							"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ arr[index].totalAddress+"</p>"+
+							'<a data-addressId="'+ arr[index].addressId +'" data-institutionId="'+ arr[index].institutionId+'" style="font-size:12px;" id="detail" href="'+path+'/inst/mapDetail?addressId='+ arr[index].addressId+'&institutionId='+ arr[index].institutionId+'&schoolName='+ encodeURI(encodeURI(arr[index].addressDesc)) +'&major='+ encodeURI(encodeURI(arr[index].majorName))+'&address='+ encodeURI(encodeURI(arr[index].totalAddress))+'">查看详情</a>'
+					));*/
+					addMarker(address);
+					(function (x) {
+						//创建信息窗口
+	                    var opts = {
+	                        width: 400,     // 信息窗口宽度
+	                        height: 120,     // 信息窗口高度
+	                        title: "<strong style=\"font-size:16px;font-weight:bold\">" + arr[index].addressDesc + "</strong>", // 信息窗口标题
+	                        enableMessage: true, //设置允许信息窗发送短息
+	                        message: ""
+	                    }
+	                    var showInfo = "地址：" + arr[index].totalAddress + "<br/>" + "描述：" + arr[index].majorName;
+	                    var infoWindow = new BMap.InfoWindow(showInfo, opts);  // 创建信息窗口对象
+	                    marker.addEventListener("click", function (e) {
+                            //map.centerAndZoom(pt, 12);
+                            marker.openInfoWindow(infoWindow, point); //开启信息窗口
+                        });
+                        map.addOverlay(marker);
+	                    j++;
+                    })(j)
+				}
+			});
+		}
+		// 编写自定义函数,创建标注
+		function addMarker(point){
+			var myIcon = new BMap.Icon("img/dian.png", new BMap.Size(32,32));
+			var marker = new BMap.Marker(point,{icon:myIcon});			
+			map.addOverlay(marker);			
+			/*marker.addEventListener("click", function (e) {
+		    	map.openInfoWindow(infoWindow,point); //开启信息窗口
+		    });*/
+		}
+</script>

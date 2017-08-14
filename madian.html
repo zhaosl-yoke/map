@@ -1,0 +1,176 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<title>AMF海水农场实体店</title>
+<link rel="stylesheet" type="text/css" href="css/amf.css" />
+<script language="javascript" src="http://webapi.amap.com/maps?v=1.2&key=2dc387076addc30c2b96dbaa788366ca"></script>
+</head>
+<body onLoad="mapInit()">
+	<div class="header clearfix">
+		<select onchange="getType(this.options[this.selectedIndex].text)" >
+			<option>北京市</option>
+			<option>河南省</option>
+			<option>山西省</option>
+			<option>山东省</option>
+			<option>辽宁省</option>
+			<option>全国</option>
+		</select>
+		<div class="btnChange">
+			<a id="iListBtn" onclick="display('list','iMapBtn');" href="javascript:void(0);">列表模式</a>
+			<a id="iMapBtn" style="display:none;" onclick="display('map','iListBtn');" href="javascript:void(0);">地图模式</a>
+		</div>
+	</div>
+	<div id="map" class="clearfix"></div>
+	<div id="list" style="display:none;">正在读取数据……</div>
+</body>
+<script language="javascript">
+function display(id1,id2){
+	document.getElementById('map').style.display = 'none';
+	document.getElementById('list').style.display = 'none';
+	document.getElementById('iListBtn').style.display = 'none';
+	document.getElementById('iMapBtn').style.display = 'none';
+	document.getElementById(id1).style.display = 'block';
+	document.getElementById(id2).style.display = 'block';
+	if (id1 === 'map' && mapObj) {
+		mapObj.setFitView();
+	}
+}
+var mapObj;
+var cloudDataLayer;
+var cloudSearch;
+var pBeijing = new AMap.LngLat(116.38298,39.955543);
+//初始化地图对象，加载地图
+function mapInit(){
+    mapObj = new AMap.Map("map",{
+	resizeEnable: true,
+    center: pBeijing, //地图中心点
+    level:12  //地图显示的比例尺级别
+    });
+	myCloudList("北京");
+}
+//云图加载列表
+function myCloudList(id){
+	//列表
+	mapObj.plugin(["AMap.CloudDataSearch"], function() {
+		//绘制多边形
+		var arr = new Array();
+		arr.push(new AMap.LngLat(75.585938,52.696361));
+		arr.push(new AMap.LngLat(134.472656,53.956086));
+		arr.push(new AMap.LngLat(129.726563,16.467695));
+		arr.push(new AMap.LngLat(81.914063,20.13847));
+		arr.push(new AMap.LngLat(75.585938,52.696361));
+		var searchOptions = {
+			keywords: id,
+			pageSize:10
+		};
+        cloudSearch = new AMap.CloudDataSearch('58ecae72afdf522b28442f9d', searchOptions); //构造云数据检索类
+        AMap.event.addListener(cloudSearch, "complete", cloudSearch_CallBack); //查询成功时的回调函数
+		AMap.event.addListener(cloudSearch, "error", errorInfo); //查询失败时的回调函数
+        cloudSearch.searchInPolygon(arr); //多边形检索
+    });
+}
+var markers = new Array(); 
+var windowsArr = new Array();
+//添加marker和infowindow     
+function addmarker(i, d){  
+    var lngX = d._location.getLng();  
+    var latY = d._location.getLat();  
+	var IconOptions = {
+		image : "img/fish.png",
+		size : new AMap.Size(32,32),
+		imageSize : new AMap.Size(32,32),
+		imageOffset : new AMap.Pixel(-16,0)
+	};
+	var myIcon = new AMap.Icon(IconOptions);
+    var markerOption = {  
+        map:mapObj,  
+        icon: myIcon,   
+        offset: new AMap.Pixel(-16,-32),   
+        position:new AMap.LngLat(lngX, latY)    
+    };              
+    var mar = new AMap.Marker(markerOption); 
+    markers.push(new AMap.LngLat(lngX, latY));  
+  
+    var infoWindow = new AMap.InfoWindow({  
+		content: "<h3>" + d._name + "</h3>" + "<p>地址：" + d._address + "</p>" + "<p>电话：<a href=\"tel:" + d.tel + "\">" + d.tel + "</a></p><p style=\"text-align:right\"><a href='http://mo.amap.com/?q=" + d._location.getLat() + "," + d._location.getLng() + "&name=" + d._name + "'>到这儿去</a></p>",
+        size:new AMap.Size(280, 0),  
+        autoMove:true,  
+        offset:new AMap.Pixel(0,-30),
+		closeWhenClickMap: true		
+    });    
+    windowsArr.push(infoWindow);     
+    var aa = function(){infoWindow.open(mapObj, mar.getPosition());};    
+    AMap.event.addListener(mar, "click", aa);    
+}
+//回调函数-成功
+function cloudSearch_CallBack(data) {
+	clearMap();
+    var resultStr="";
+    var resultArr = data.datas;
+    var resultNum = resultArr.length;
+    for (var i = 0; i < resultNum; i++) {
+		resultStr += "<div class=\"item\">";
+		resultStr += "<h3>" + (i+1) + "、" + resultArr[i]._name + "</h3>";
+		resultStr += "<p>地址：" + resultArr[i]._address + "</p>";
+		resultStr += "<p>电话：<a href=\"tel:" + resultArr[i].tel + "\">" + resultArr[i].tel + "</a></p>";
+		resultStr += "<p>地图：<a href='http://mo.amap.com/?q=" + resultArr[i]._location.getLat() + "," + resultArr[i]._location.getLng() + "&name=" + resultArr[i]._name + "'>到这里去</a></p>";
+		resultStr += "</div>";
+		addmarker(i, resultArr[i]); //添加大标注
+    }
+	if (document.getElementById('map').style.display !== 'none') {
+		mapObj.setFitView();
+	}
+    document.getElementById("list").innerHTML = resultStr;
+}
+//回调函数-失败
+function errorInfo(data) {
+    resultStr = data.info;
+    document.getElementById("list").innerHTML = resultStr;
+}
+//清空地图
+function clearMap(){
+	mapObj.clearMap();
+	document.getElementById("list").innerHTML = '正在读取数据……';
+}
+//索引云图
+function getType(iPrivance){
+	if(iPrivance=="全国"){
+		if (document.getElementById('map').style.display !== 'none') {
+			mapObj.setZoomAndCenter(4,new AMap.LngLat(114.433594,33.651208));
+		}
+		myCloudList('');
+		var op={
+			query:{keywords:""}
+		};
+		cloudDataLayer.setOptions(op);
+	}else{
+		myCloudList(iPrivance);
+		var op={
+			query:{keywords:iPrivance}
+		};
+		cloudDataLayer.setOptions(op);
+		placeSearch(iPrivance);
+	}
+}
+//城市查询
+function placeSearch(id) {
+    var MSearch;
+    mapObj.plugin(["AMap.PlaceSearch"], function() {
+        MSearch = new AMap.PlaceSearch({ //构造地点查询类
+            pageSize:1,
+            pageIndex:1,
+            city:"" //城市
+        });
+        AMap.event.addListener(MSearch, "complete", keywordSearch_CallBack);//返回地点查询结果
+        MSearch.search(id); //关键字查询
+    });
+}
+//城市查询后定位
+function keywordSearch_CallBack(data) {
+	var iPoint = data.poiList.pois[0].location;
+	mapObj.setZoomAndCenter(10,iPoint);
+}
+</script>
+</html>

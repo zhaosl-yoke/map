@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<title>批量地址</title>
+	<style type="text/css">
+		body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+		#l-map{height:100%;width:100%;}
+		#r-result{width:100%; font-size:14px;line-height:20px;}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=yAlta2vdvSIP2Kk6q9oOI80BopvxAq2E"></script>
+	<script type="text/javascript" src="js/jquery-1.12.1.min.js"></script>
+	<script type="text/javascript" src="js/sercice.js"></script>	
+</head>
+<body>
+	<div id="l-map"></div>
+	<!--<div><button onclick="address();">点击查询</button></div>-->
+</body>
+</html>
+<script type="text/javascript">
+		var api = {
+			"selectAllInstAddress": "json/map.json" 	
+	}
+	// 百度地图API功能
+	var map = new BMap.Map("l-map");
+	map.centerAndZoom(new BMap.Point(116.38298,39.955543), 13);
+	map.enableScrollWheelZoom(true);
+	var geolocation = new BMap.Geolocation();
+	geolocation.getCurrentPosition(function(r){
+		if(this.getStatus() == BMAP_STATUS_SUCCESS){
+			var mk = new BMap.Marker(r.point);
+			map.addOverlay(mk);
+			map.panTo(r.point);
+		}    
+	},{enableHighAccuracy: true})
+	var index = 0;
+	var myGeo = new BMap.Geocoder();
+	var arr = new Array();
+	//var arr1 = [];
+	//var arr2 = [];
+	address();
+	function address(){
+		$.ajax({
+        	type:"get",
+        	url:"json/map.json",
+        	async:true,
+        	success: function(data) {
+        		//console.log(data);
+	        	var instAddresses = data.body.instAddresses;
+	        	console.log(instAddresses.length)
+				for (var i = 0; i < instAddresses.length; i++) {
+					var province = instAddresses[i].province;
+					var addressId = instAddresses[i].id;
+					var institutionId = instAddresses[i].userId;
+					var city = instAddresses[i].city;
+					var area = instAddresses[i].area;
+					var address = instAddresses[i].address;
+					var totalAddress = province + city + area + address;
+					var addressDesc = instAddresses[i].addressDesc;			
+					var majorName = instAddresses[i].majorName;
+					var adds = new Object();
+					adds.totalAddress = totalAddress;
+					adds.addressDesc = addressDesc;
+					adds.majorName = majorName;
+					adds.addressId = addressId;
+					adds.institutionId = institutionId;
+					arr.push(adds);	
+					//arr2.push(majorName)
+				}
+				//console.log(arr);
+				bdGEO();
+			}
+        });
+	}
+	function bdGEO(){
+		if(arr[index]!=undefined){
+			var adds = arr[index].totalAddress;
+			geocodeSearch(adds);
+			index++;
+		}
+		//console.log(index+":"+adds);
+		//index++;
+		
+	}
+	function geocodeSearch(adds){
+		//console.log(adds);
+		if(index < arr.length){
+			setTimeout(bdGEO,0);
+		} 
+		myGeo.getPoint(adds, function(point){
+			if (point) {
+				var address = new BMap.Point(point.lng, point.lat);
+				//console.log((index-1)+':'+arr[index-1].addressDesc);
+				var add = arr[index-1];
+				addMarker(address,new BMap.InfoWindow("<h4 style='margin:0 0 5px 0;padding:0.2em 0;font-size: 14px;'>"+ add.addressDesc +"</h4>" + 
+						"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ add.majorName+"</p>" + 
+						"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ add.totalAddress+"</p>"+
+						'<a data-addressId="'+ add.addressId +'" data-institutionId="'+ add.institutionId+'" style="font-size:12px;" id="detail" href="'+path+'/inst/mapDetail?addressId='+ 
+						add.addressId+'&institutionId='+ add.institutionId+'&schoolName='+ encodeURI(encodeURI(add.addressDesc)) +'&major='+ encodeURI(encodeURI(add.totalAddress))+'">查看详情</a>'
+					));
+				//addMarker(address,new BMap.Label(index+":"+adds,{offset:new BMap.Size(20,-10)}));
+			}
+		});
+	}
+	// 编写自定义函数,创建标注
+	function addMarker(point,infoWindow){
+		var myIcon = new BMap.Icon("img/dian.png", new BMap.Size(32,32));
+		var marker = new BMap.Marker(point,{icon:myIcon});			
+		map.addOverlay(marker);			
+		marker.addEventListener("click", function (e) {
+	    	map.openInfoWindow(infoWindow,point); //开启信息窗口
+	    });
+		//map.addOverlay(marker);
+		//marker.setLabel(label);
+	}
+</script>

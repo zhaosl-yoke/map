@@ -1,0 +1,56 @@
+{
+    "success": true,
+    "msg": null,
+    "token": null,
+    "target": null,
+    "versionCode": null,
+    "body": {
+        "instAddresses": [
+            {
+                "id": 638,
+                "userId": 404,
+                "addressDesc": "i艺音乐培训融科校区",
+                "address": "珞瑜路95号",
+                "createTime": 1467858931000,
+                "province": "湖北省",
+                "city": "武汉市",
+                "area": "洪山区",
+                "phone": null,
+                "isDefault": 1,
+                "inuse": true,
+                "majorName": "声乐,钢琴,古筝,小提琴",
+                "institutionName": "i艺音乐培训"
+            },    
+            {
+                "id": 375,
+                "userId": 3190,
+                "addressDesc": "武汉音乐学院",
+                "address": "琴房大楼",
+                "createTime": 1459783892000,
+                "province": "湖北省",
+                "city": "武汉市",
+                "area": "武昌区",
+                "phone": null,
+                "isDefault": 1,
+                "inuse": true,
+                "majorName": "钢琴",
+                "institutionName": "武汉音乐学院附中"
+            },
+            {
+                "id": 681,
+                "userId": 3903,
+                "addressDesc": "爱沐艺术中心光谷国际校区",
+                "address": "佳园路光谷国际大厦B座1209",
+                "createTime": 1468375687000,
+                "province": "湖北省",
+                "city": "武汉市",
+                "area": "洪山区",
+                "phone": null,
+                "isDefault": 0,
+                "inuse": true,
+                "majorName": "古筝,钢琴,吉他",
+                "institutionName": "爱沐艺术中心"
+            }
+        ]
+    }
+}

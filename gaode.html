@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>地理编码</title>
+    <link rel="stylesheet" href="http://cache.amap.com/lbs/static/main1119.css"/>
+    <script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=2dc387076addc30c2b96dbaa788366ca&plugin=AMap.Geocoder"></script>
+    <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
+    <script type="text/javascript" src="js/jquery-1.12.1.min.js"></script>
+</head>
+<body>
+<div id="container"></div>
+<!-- <div id="tip">
+    
+    <span id="result"></span>
+</div> -->
+<script type="text/javascript">
+    var map = new AMap.Map("container", {
+        resizeEnable: true,
+        zoom:16
+    });
+    var arr = new Array();
+    var index = 0;
+    var geocoder = new AMap.Geocoder();
+    address();
+    function address() {
+        //地理编码,返回地理编码结果
+        $.ajax({
+        	type:"get",
+        	url:"json/map1.json",
+        	async:true,
+        	success: function(data) {
+        		//console.log(data);
+	        	var instAddresses = data.body.instAddresses;
+	        	for (var i = 0; i < instAddresses.length; i++) {
+	        		var province = instAddresses[i].province;
+	        		var city = instAddresses[i].city;
+	        		var area = instAddresses[i].area;
+	        		var address = instAddresses[i].address;
+	        		var phone = instAddresses[i].phone;
+	        		var institutionId = instAddresses[i].userId;
+	        		var addressId = instAddresses[i].id;
+	        		var majorName = instAddresses[i].address;
+	        		var institutionName = instAddresses[i].institutionName;
+	        		var addressDesc = instAddresses[i].addressDesc;
+	        		var totalName = institutionName + "（"+addressDesc+"）";
+	        		var majorName = instAddresses[i].majorName;
+	        		var totalAddress = province + city + area + address;
+	        		var adds = new Object();
+					adds.totalAddress = totalAddress;
+					adds.addressDesc = addressDesc;
+					adds.majorName = majorName;
+					adds.addressId = addressId;
+					adds.institutionId = institutionId;
+					arr.push(adds);	
+	        	}
+	        	bdGEO();
+			}
+        });
+        
+    } 
+    function bdGEO(){
+		if(arr[index]!=undefined){
+			var adds = arr[index].totalAddress;
+			geocodeSearch(adds);
+			index++;
+		}
+	}
+    function geocodeSearch(adds){
+		if(index < arr.length){
+			setTimeout(bdGEO,0);
+		} 
+		geocoder.getLocation(adds, function(status, result) {
+            geocoder_CallBack(result);
+		});
+	}
+    function  geocoder_CallBack(data){
+    	if (data) {
+    		var geocode = data.geocodes;
+	        for (var i = 0; i < geocode.length; i++) {
+	            addMarker(i, geocode[i]);
+	        }
+	        map.setFitView();
+				//console.log((index-1)+':'+arr[index-1].addressDesc);
+				var add = arr[index-1];
+				addMarker(address,new BMap.InfoWindow("<h4 style='margin:0 0 5px 0;padding:0.2em 0;font-size: 14px;'>"+ add.addressDesc +"</h4>" + 
+						"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ add.majorName+"</p>" + 
+						"<p style='margin:0;line-height:1.5;font-size:13px;'>"+ add.totalAddress+"</p>"+
+						'<a data-addressId="'+ add.addressId +'" data-institutionId="'+ add.institutionId+'" style="font-size:12px;" id="detail" href="'+path+'/inst/mapDetail?addressId='+ 
+						add.addressId+'&institutionId='+ add.institutionId+'&schoolName='+ encodeURI(encodeURI(add.addressDesc)) +'&major='+ encodeURI(encodeURI(add.totalAddress))+'">查看详情</a>'
+					));
+    	}
+    }
+	function addMarker(i, d) {
+	    var marker = new AMap.Marker({
+	        map: map,
+	        position: [ d.location.getLng(),  d.location.getLat()]
+	    });
+	    var infoWindow = new AMap.InfoWindow({
+	        content: d.formattedAddress,
+	        offset: {x: 0, y: -30}
+	    });
+	    marker.on("mouseover", function(e) {
+	        infoWindow.open(map, marker.getPosition());
+	    });
+    }
+</script>
+</body>
+</html>
